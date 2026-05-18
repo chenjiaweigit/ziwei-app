@@ -290,12 +290,12 @@ export default function ChartPage() {
             <div className="chart-workspace-left">
               <ChartBoard
                 chart={chart}
-                view={view}
-                liunianYear={liunianYear}
-                onStarClick={handleStarClick}
-                onPalaceClick={handlePalaceClick}
-                onSiHuaBadgeClick={handleSiHuaBadgeClick}
-                onTimeViewChange={setView}
+                onStarSelect={handleStarClick}
+                onPalaceSelect={handlePalaceClick}
+                onSiHuaClick={(starName, siHua, v) => {
+                  handleSiHuaBadgeClick(starName, siHua);
+                  if (v) setView(v);
+                }}
               />
 
               {/* 底部操作区 */}

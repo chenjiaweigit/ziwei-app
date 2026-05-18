@@ -276,7 +276,7 @@ export async function captureShareCard(): Promise<string | null> {
     const html2canvas = (await import('html2canvas')).default;
     const node = document.getElementById('share-card');
     if (!node) return null;
-    const canvas = await html2canvas(node, {
+    const canvas = await (html2canvas as unknown as (node: HTMLElement, opts: Record<string, unknown>) => Promise<HTMLCanvasElement>)(node, {
       scale: 2,
       useCORS: true,
       backgroundColor: null,

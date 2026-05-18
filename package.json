@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/indexnow-ping.mjs",
+
     "start": "next start",
     "build:cf": "npx @cloudflare/next-on-pages",
     "preview:cf": "npx wrangler pages dev",
@@ -23,6 +23,7 @@
     "iztro": "^2.5.8",
     "lunar-javascript": "^1.7.3",
     "next": "^15.5.15",
+    "openai": "^6.38.0",
     "pg": "^8.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
+    "@types/html2canvas": "^0.5.35",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
