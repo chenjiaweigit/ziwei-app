@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart, Palace } from '@/lib/ziwei/types';
 import type { TimeView } from './TimeNav';
@@ -21,6 +21,8 @@ interface InsightPanelProps {
   selectedPalace?: Palace | null;
   selectedSiHua?: SelectedSiHua | null;
 }
+
+const FETCH_TIMEOUT = 120_000; // 120s — NVIDIA 某些模型冷启动较慢
 
 const TOPICS = [
   { key: 'overview',     label: '命格' },
@@ -277,6 +279,33 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
     processQueue();
   }, [selectedSiHua]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const processQueue = useCallback(() => {
+    if (loadingRef.current || pendingQueue.current.length === 0) return;
+    const nextPrompt = pendingQueue.current.shift()!;
+    sendMessage(nextPrompt, true);
+  }, []); // sendMessage 通过 ref 访问最新值
+
+  const handleTopicClick = (topicKey: string) => {
+    setActiveTopic(topicKey);
+    const prompt = TOPIC_PROMPTS[topicKey];
+    if (!loadingRef.current) {
+      pendingQueue.current.push(prompt);
+      processQueue();
+    } else {
+      const idx = pendingQueue.current.indexOf(prompt);
+      if (idx !== -1) pendingQueue.current.splice(idx, 1);
+      pendingQueue.current.push(prompt);
+    }
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const text = input;
+    setInput('');
+    pendingQueue.current.push(text);
+    processQueue();
+  };
+
   const sendMessage = (text: string, hidden = false) => {
     if (!text.trim() || loadingRef.current) return;
     loadingRef.current = true;
@@ -295,12 +324,19 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
 
   const streamResponse = async (apiMessages: { role: 'user' | 'assistant'; content: string }[]) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
       const res = await fetch('/api/interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chart, messages: apiMessages }),
+        signal: controller.signal,
       });
-      if (!res.ok) throw new Error('请求失败');
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || '请求失败');
+      }
       if (!res.body) throw new Error('无响应流');
 
       const reader = res.body.getReader();
@@ -328,32 +364,16 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
           } catch { /* skip */ }
         }
       }
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '解读失败，请稍后重试。' }]);
+    } catch (err) {
+      const msg = err instanceof DOMException && err.name === 'AbortError'
+        ? '解读请求超时，请检查 API 配置后重试。'
+        : '解读失败，请稍后重试。';
+      setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       loadingRef.current = false;
       setLoading(false);
       setTimeout(() => processQueue(), 100);
     }
-  };
-
-  const handleTopicClick = (topicKey: string) => {
-    setActiveTopic(topicKey);
-    pendingQueue.current.push(TOPIC_PROMPTS[topicKey]);
-    processQueue();
-  };
-
-  const processQueue = () => {
-    if (loadingRef.current || pendingQueue.current.length === 0) return;
-    const nextPrompt = pendingQueue.current.shift()!;
-    sendMessage(nextPrompt, true);
-  };
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-    pendingQueue.current.push(input);
-    setInput('');
-    processQueue();
   };
 
   return (
@@ -389,7 +409,18 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="text-4xl mb-3" style={{ color: 'var(--t-gold)', opacity: 0.1 }}>✦</div>
-            <p className="text-[10px] animate-pulse" style={{ color: 'var(--t-faint)' }}>命格解读生成中…</p>
+            <p className="text-[10px] animate-pulse" style={{ color: 'var(--t-faint)' }}>
+              {loading ? '命格解读生成中…' : '选择上方主题开始解读'}
+            </p>
+          </div>
+        )}
+
+        {/* Queue indicator */}
+        {loading && pendingQueue.current.length > 0 && (
+          <div className="text-center py-1">
+            <span className="text-[9px]" style={{ color: 'var(--t-faint)' }}>
+              排队中 {pendingQueue.current.length} 个请求…
+            </span>
           </div>
         )}
 
@@ -449,8 +480,7 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="继续追问，如：今年适合换工作吗？"
-            disabled={loading}
+            placeholder={loading ? 'AI 解读中，输入后自动排队…' : '继续追问，如：今年适合换工作吗？'}
             className="flex-1 rounded-lg px-3 py-2 text-[11px] focus:outline-none transition-colors"
             style={{
               background: 'var(--t-card)',
@@ -460,15 +490,15 @@ ${selectedSiHua.starName}化${selectedSiHua.siHua}落在【${palaceName}】，�
           />
           <button
             onClick={handleSend}
-            disabled={loading || !input.trim()}
+            disabled={!input.trim()}
             className="px-3 py-2 rounded-lg text-[11px] font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             style={{
-              background: 'rgba(212,168,67,0.15)',
+              background: loading ? 'rgba(212,168,67,0.08)' : 'rgba(212,168,67,0.15)',
               border: '1px solid rgba(212,168,67,0.25)',
               color: 'var(--t-gold)',
             }}
           >
-            {loading ? '…' : '追问'}
+            {loading ? '排队' : '追问'}
           </button>
         </div>
       </div>

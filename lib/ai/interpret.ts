@@ -21,8 +21,15 @@ function getClient(): OpenAI {
 
 const MODEL = process.env.AI_MODEL || 'deepseek-chat';
 
+const contextCache = new WeakMap<ZiweiChart, string>();
+
 function buildContext(chart: ZiweiChart): string {
-  return extractChartContext(chart);
+  let ctx = contextCache.get(chart);
+  if (!ctx) {
+    ctx = extractChartContext(chart);
+    contextCache.set(chart, ctx);
+  }
+  return ctx;
 }
 
 export async function streamInterpret(
@@ -33,6 +40,8 @@ export async function streamInterpret(
   const context = buildContext(chart);
 
   const systemMessage = `${SYSTEM_PROMPT}\n\n以下是命主的命盘数据。请据此给出解读：\n\n${context}`;
+
+  const encoder = new TextEncoder();
 
   const response = await client.chat.completions.create({
     model: MODEL,
@@ -45,17 +54,22 @@ export async function streamInterpret(
     stream: true,
   });
 
-  const encoder = new TextEncoder();
-
   return new ReadableStream({
     async start(controller) {
       try {
+        let hasContent = false;
         for await (const chunk of response) {
           const delta = chunk.choices?.[0]?.delta;
           if (delta?.content) {
+            hasContent = true;
             const data = JSON.stringify({ delta: { text: delta.content } });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
+        }
+        if (!hasContent) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ delta: { text: '解读生成失败，模型返回为空' } })}\n\n`),
+          );
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
@@ -103,7 +117,7 @@ ${contextB}`;
       { role: 'user', content: question || '请分析这两人的缘分匹配度、感情走向与相处建议，按以下结构输出：\n\n**【双方命格总览】**\n各自命宫主星与核心特质。\n\n**【感情匹配分析】**\n夫妻宫星曜互动、感情模式的互补与冲突。\n\n**【事业与财运互动】**\n双方在事业和财务上的配合度。\n\n**【大限同步性】**\n当前大限走向是否一致，关键时间节点。\n\n**【相处建议】**\n基于命盘的具体相处策略与建议。' },
     ],
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: 1200,
     stream: true,
   });
 
@@ -112,18 +126,44 @@ ${contextB}`;
   return new ReadableStream({
     async start(controller) {
       try {
+        let buffer: string[] = [];
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
+        function flush() {
+          if (buffer.length === 0) return;
+          const data = JSON.stringify({ delta: { text: buffer.join('') } });
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          buffer = [];
+        }
+
+        function scheduleFlush() {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => { timer = null; flush(); }, 60);
+        }
+
+        let hasContent = false;
         for await (const chunk of response) {
           const delta = chunk.choices?.[0]?.delta;
           if (delta?.content) {
-            const data = JSON.stringify({ delta: { text: delta.content } });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            hasContent = true;
+            buffer.push(delta.content);
+            scheduleFlush();
           }
+        }
+
+        if (timer) clearTimeout(timer);
+        flush();
+
+        if (!hasContent) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ delta: { text: '解读生成失败，模型返回为空' } })}\n\n`),
+          );
         }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: '合盘分析生成失败' })}\n\n`),
+          encoder.encode(`data: ${JSON.stringify({ error: '解读生成失败' })}\n\n`),
         );
         controller.close();
       }

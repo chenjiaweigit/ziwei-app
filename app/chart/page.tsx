@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import BirthForm, { type BirthFormState } from '@/components/BirthForm';
-import TopBar, { type TimeView } from '@/components/chart/TopBar';
+import TopBar from '@/components/chart/TopBar';
+import type { TimeView } from '@/components/TimeNav';
 import ChartBoard from '@/components/chart/ChartBoard';
 import InsightPanel, { type FocusState } from '@/components/insight/InsightPanel';
 import PatternsCard from '@/components/PatternsCard';
@@ -34,6 +35,7 @@ export default function ChartPage() {
   const [focus, setFocus] = useState<FocusState | null>(null);
 
   const { history, save: saveHistory, remove: removeHistory } = useHistory();
+  const warmedUp = useRef(false);
 
   // ── URL 参数自动起盘 ──────────────────────────────────────
   useEffect(() => {
@@ -69,6 +71,15 @@ export default function ChartPage() {
       setChart(data);
       setFocus(null);
       setView('mingpan');
+      // 预热 AI 模型（仅首次）
+      if (!warmedUp.current) {
+        warmedUp.current = true;
+        fetch('/api/interpret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chart: data, messages: [{ role: 'user', content: '预载' }] }),
+        }).catch(() => {});
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '生成失败，请重试');
     } finally {
@@ -269,18 +280,9 @@ export default function ChartPage() {
         ═══════════════════════════════════════════════════ */
         <div className="chart-page-root">
 
-          {/* 顶部时间导航栏 */}
+          {/* 顶部栏 */}
           <TopBar
-            chart={chart}
-            view={view}
-            liunianYear={liunianYear}
-            liuyueMonth={liuyueMonth}
-            onViewChange={setView}
-            onYearChange={setLiunianYear}
-            onMonthChange={setLiuyueMonth}
             onShare={savedForm ? handleShare : undefined}
-            onExport={() => window.print()}
-            copied={copied}
           />
 
           {/* 主体：桌面双栏 / 手机上下堆叠 */}

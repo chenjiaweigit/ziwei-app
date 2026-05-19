@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ZiweiChart } from '@/lib/ziwei/types';
 
+const FETCH_TIMEOUT = 120_000;
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -41,11 +43,15 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
       const res = await fetch('/api/interpret', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chart, messages: [...messages, userMsg] }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error('请求失败');
       if (!res.body) throw new Error('无响应流');
@@ -78,11 +84,11 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
           }
         }
       }
-    } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '解读失败，请检查API配置或稍后重试。',
-      }]);
+    } catch (err) {
+      const msg = err instanceof DOMException && err.name === 'AbortError'
+        ? '请求超时，请检查 API 配置后重试。'
+        : '解读失败，请检查API配置或稍后重试。';
+      setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setLoading(false);
     }
@@ -182,8 +188,7 @@ export default function ChatPanel({ chart }: ChatPanelProps) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
-            placeholder="输入问题，如：我的感情运势如何？"
-            disabled={loading}
+            placeholder={loading ? 'AI 解读中，输入后自动排队…' : '输入问题，如：我的感情运势如何？'}
             className="flex-1 rounded-lg px-3 py-2 text-xs focus:outline-none transition-colors"
             style={{
               background: 'var(--t-card)',

@@ -19,66 +19,53 @@ const PALACE_NAMES_ZH: Record<string, string> = {
 };
 
 export function extractChartContext(chart: ZiweiChart): string {
-  const lines: string[] = [];
+  const parts: string[] = [];
   const { lunarInfo, wuxingJuName, currentAge } = chart;
 
-  lines.push(`命主出生：${chart.birthInfo.year}年${chart.birthInfo.month}月${chart.birthInfo.day}日，${chart.birthInfo.gender === 'male' ? '男' : '女'}命`);
-  lines.push(`农历：${lunarInfo.lunarYear}年${lunarInfo.lunarMonth}月${lunarInfo.lunarDay}日，年柱${STEMS[lunarInfo.yearStem]}${BRANCHES[lunarInfo.yearBranch]}`);
-  lines.push(`五行局：${wuxingJuName}`);
-  lines.push(`当前年龄：${currentAge}岁`);
+  parts.push(`出生：${chart.birthInfo.year}年${chart.birthInfo.month}月${chart.birthInfo.day}日，${chart.birthInfo.gender === 'male' ? '男' : '女'}命`);
+  parts.push(`农历：${lunarInfo.lunarYear}年${lunarInfo.lunarMonth}月${lunarInfo.lunarDay}日，年柱${STEMS[lunarInfo.yearStem]}${BRANCHES[lunarInfo.yearBranch]}`);
+  parts.push(`五行局：${wuxingJuName}`);
+  parts.push(`年龄：${currentAge}岁`);
 
   const mingPalace = chart.palaces.find(p => p.isMingGong);
   if (mingPalace) {
-    lines.push(`命宫位置：${BRANCHES[mingPalace.branch]}宫（${PALACE_NAMES_ZH[mingPalace.name] || ''}）`);
     const majorStars = mingPalace.stars.filter(s => s.type === 'major');
-    if (majorStars.length > 0) {
-      lines.push(`命宫主星：${majorStars.map(s => formatStar(s)).join('、')}`);
-    } else {
-      lines.push(`命宫无主星（空宫，借对宫${mingPalace.borrowedFromName || ''}：${(mingPalace.borrowedStars || []).join('、')}）`);
-    }
+    parts.push(`命宫${BRANCHES[mingPalace.branch]}宫：${majorStars.length ? majorStars.map(s => formatStar(s)).join('、') : `空宫（借${mingPalace.borrowedFromName || ''}：${(mingPalace.borrowedStars || []).join('、')}）`}`);
     const sihuaStars = mingPalace.stars.filter(s => s.siHua);
-    if (sihuaStars.length > 0) {
-      lines.push(`命宫四化：${sihuaStars.map(s => `${s.name}化${s.siHua}`).join('、')}`);
-    }
+    if (sihuaStars.length) parts.push(`命宫四化：${sihuaStars.map(s => `${s.name}化${s.siHua}`).join('、')}`);
   }
 
   const shenPalace = chart.palaces.find(p => p.isShenGong);
-  if (shenPalace) {
-    lines.push(`身宫位置：${BRANCHES[shenPalace.branch]}宫`);
-  }
+  if (shenPalace) parts.push(`身宫：${BRANCHES[shenPalace.branch]}宫`);
 
   for (const palace of chart.palaces) {
     const majorStars = palace.stars.filter(s => s.type === 'major');
-    if (majorStars.length === 0) continue;
-
-    const starDesc = majorStars.map(s => formatStar(s)).join('、');
+    if (!majorStars.length) continue;
+    const desc = majorStars.map(s => formatStar(s)).join('、');
     const role = PALACE_NAMES_ZH[palace.name] || '';
-    lines.push(`${palace.name}（${role}）：${starDesc}`);
+    parts.push(`${palace.name}（${role}）：${desc}`);
   }
 
   const sihuaSummary = buildSiHuaSummary(chart);
-  if (sihuaSummary) {
-    lines.push(`本命四化：${sihuaSummary}`);
-  }
+  if (sihuaSummary) parts.push(`本命四化：${sihuaSummary}`);
 
   const currentDx = chart.daXians[chart.currentDaXianIndex];
   if (currentDx) {
-    lines.push(`当前大限（${currentDx.startAge}-${currentDx.endAge}岁）：${currentDx.palaceName}`);
+    parts.push(`大限${currentDx.startAge}-${currentDx.endAge}岁：${currentDx.palaceName}`);
     const dxPalace = chart.palaces.find(p => p.branch === currentDx.palaceBranch);
     if (dxPalace) {
       const dxStars = dxPalace.stars.filter(s => s.type === 'major').map(s => formatStar(s)).join('、');
-      if (dxStars) lines.push(`大限宫主星：${dxStars}`);
+      if (dxStars) parts.push(`大限宫主星：${dxStars}`);
     }
   }
 
   const patterns = detectPatterns(chart);
-  if (patterns.length > 0) {
+  if (patterns.length) {
     const levels: Record<string, string> = { excellent: '上格', good: '中上', neutral: '中格', caution: '下格' };
-    const patternDesc = patterns.map(p => `${p.name}（${levels[p.level] || p.level}）`).join('、');
-    lines.push(`命盘格局：${patternDesc}`);
+    parts.push(`格局：${patterns.map(p => `${p.name}（${levels[p.level] || p.level}）`).join('、')}`);
   }
 
-  return lines.join('\n');
+  return parts.join('\n');
 }
 
 function formatStar(star: Star): string {
