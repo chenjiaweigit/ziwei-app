@@ -18,6 +18,7 @@ export default function KnowledgeHomePage() {
 
   return (
     <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
+      {/* 顶栏 */}
       <div className="px-6 py-4 flex items-center justify-between"
         style={{ borderBottom: '1px solid rgba(184,146,42,0.15)', background: 'var(--bg-page)' }}>
         <Link href="/" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.3em', textDecoration: 'none' }}>
@@ -31,6 +32,7 @@ export default function KnowledgeHomePage() {
         </Link>
       </div>
 
+      {/* Hero */}
       <div className="text-center px-6 py-14">
         <div className="flex items-center justify-center gap-3 mb-4">
           <div style={{ height: '1px', width: '48px', background: 'linear-gradient(to right, transparent, rgba(184,146,42,0.4))' }} />
@@ -46,6 +48,7 @@ export default function KnowledgeHomePage() {
         </p>
       </div>
 
+      {/* 14 主星卡片 */}
       <div className="max-w-5xl mx-auto px-6 pb-20">
         <div style={{ fontSize: '11px', color: 'var(--tx-3)', letterSpacing: '0.3em', textAlign: 'center', marginBottom: '24px' }}>
           十四主星
@@ -74,6 +77,7 @@ export default function KnowledgeHomePage() {
           ))}
         </div>
 
+        {/* 详细列表（每个主星 + 简介 + 进入按钮） */}
         <div className="mt-14 space-y-4">
           {ALL_STARS.map(star => (
             <div key={star} style={{

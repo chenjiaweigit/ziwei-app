@@ -1,3 +1,10 @@
+/**
+ * SEO 知识页 — 数据 helper
+ *
+ * 14 主星 × 13 topic = 182 个独立 SEO URL
+ * 每页都是 STAR_DB 中对应字段的 4 段 markers（一句话定调/核心论断/命盘依据/经典出处）
+ */
+
 import { STAR_DB } from '@/lib/ziwei/db-analysis';
 import type { TopicKey } from '@/lib/ziwei/db-analysis';
 import { TOPIC_PALACE_NAME, TOPIC_LABEL } from '@/lib/ziwei/db-analysis';
@@ -7,6 +14,7 @@ export const ALL_STARS = [
   '太阴', '贪狼', '巨门', '天相', '天梁', '七杀', '破军',
 ];
 
+// 主星名 ↔ 拼音 slug 映射（URL 用 slug，避免中文 URL 在 Vercel/CDN 上的边界问题）
 export const STAR_TO_SLUG: Record<string, string> = {
   '紫微': 'ziwei',
   '天机': 'tianji',
@@ -33,22 +41,6 @@ export const ALL_TOPICS: TopicKey[] = [
   'family', 'children', 'move', 'friends', 'home', 'spirit', 'parents',
 ];
 
-const TOPIC_TO_FIELD: Record<TopicKey, keyof StarContent> = {
-  overview:    'mingGong',
-  personality: 'personality',
-  love:        'fuQi',
-  career:      'guanLu',
-  wealth:      'caiBo',
-  health:      'jiE',
-  family:      'xiongDi' as keyof StarContent,
-  children:    'ziNv' as keyof StarContent,
-  move:        'qianYi' as keyof StarContent,
-  friends:     'jiaoYou' as keyof StarContent,
-  home:        'tianZhai' as keyof StarContent,
-  spirit:      'fuDe' as keyof StarContent,
-  parents:     'fuMu' as keyof StarContent,
-};
-
 interface StarContent {
   mingGong: string;
   personality: string;
@@ -64,6 +56,22 @@ interface StarContent {
   fuDe?: string;
   fuMu?: string;
 }
+
+const TOPIC_TO_FIELD: Record<TopicKey, keyof StarContent> = {
+  overview:    'mingGong',
+  personality: 'personality',
+  love:        'fuQi',
+  career:      'guanLu',
+  wealth:      'caiBo',
+  health:      'jiE',
+  family:      'xiongDi' as keyof StarContent,
+  children:    'ziNv' as keyof StarContent,
+  move:        'qianYi' as keyof StarContent,
+  friends:     'jiaoYou' as keyof StarContent,
+  home:        'tianZhai' as keyof StarContent,
+  spirit:      'fuDe' as keyof StarContent,
+  parents:     'fuMu' as keyof StarContent,
+};
 
 interface ParsedContent {
   dingdiao: string;
@@ -123,6 +131,7 @@ export function getKnowledge(star: string, topic: TopicKey): KnowledgeData {
   };
 }
 
+/** 生成所有 14×13 组合（用于 generateStaticParams） */
 export function getAllKnowledgeRoutes() {
   const routes: { star: string; slug: string; topic: TopicKey }[] = [];
   for (const star of ALL_STARS) {
@@ -134,6 +143,7 @@ export function getAllKnowledgeRoutes() {
   return routes;
 }
 
+/** 主星属性简介（用于 SEO 页"了解 XX 星"section） */
 export const STAR_BRIEF_SEO: Record<string, string> = {
   '紫微': '紫微为帝星，主尊贵，化气为尊。落命主有领导气场、宜大平台高位。',
   '天机': '天机为智慧星，主善变机灵，化气为善。落命主聪明机变、宜辅佐策划。',

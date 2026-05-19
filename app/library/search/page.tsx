@@ -1,21 +1,18 @@
 /**
- * 古籍搜索页
+ * /library/search?q=xxx — 搜索结果页
  */
-'use client';
-import { Suspense, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+
 import Link from 'next/link';
-import { searchClassics, type SearchHit } from '@/lib/classics';
+import { searchClassics, getParagraphById } from '@/lib/classics';
 
-function SearchResults() {
-  const searchParams = useSearchParams();
-  const q = searchParams.get('q') || '';
-  const [results, setResults] = useState<SearchHit[]>([]);
+export const metadata = {
+  title: '搜索 · 古籍原典库',
+};
 
-  useEffect(() => {
-    if (!q) { setResults([]); return; }
-    setResults(searchClassics(q));
-  }, [q]);
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const sp = await searchParams;
+  const q = sp.q?.trim() || '';
+  const hits = q ? searchClassics(q, 50) : [];
 
   return (
     <div style={{ background: 'var(--bg-page)', minHeight: '100vh' }}>
@@ -27,50 +24,98 @@ function SearchResults() {
         <div style={{ fontSize: '12px', color: 'var(--tx-3)', letterSpacing: '0.2em' }}>
           搜索结果
         </div>
+        <Link href="/" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.2em', textDecoration: 'none' }}>
+          首页 →
+        </Link>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-12">
-        <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--tx-0)', marginBottom: '16px', letterSpacing: '0.1em' }}>
-          搜索: {q}
-        </h1>
-        {results.length === 0 ? (
-          <p style={{ color: 'var(--tx-3)', fontSize: '13px' }}>没有找到相关结果</p>
+        <div className="text-center mb-10">
+          <div style={{ fontSize: '13px', color: 'var(--tx-3)', letterSpacing: '0.15em', marginBottom: '4px' }}>
+            搜索关键词
+          </div>
+          <h1 style={{ fontSize: 'clamp(22px, 3.5vw, 32px)', fontWeight: 700, color: 'var(--tx-0)', letterSpacing: '0.1em' }}>
+            「{q || '（空）'}」
+          </h1>
+          <div style={{ fontSize: '12px', color: 'var(--tx-3)', marginTop: '8px' }}>
+            共找到 <strong style={{ color: 'var(--ac)' }}>{hits.length}</strong> 条古籍原文匹配
+          </div>
+        </div>
+
+        {hits.length === 0 ? (
+          <div style={{
+            background: 'var(--bg-card)',
+            padding: '40px 20px',
+            borderRadius: '12px',
+            textAlign: 'center',
+            color: 'var(--tx-2)',
+            border: '1px solid rgba(184,146,42,0.15)',
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.4 }}>📜</div>
+            {q ? (
+              <>
+                <div style={{ fontSize: '14px', marginBottom: '6px' }}>暂未在已收录古籍中找到这个关键词</div>
+                <div style={{ fontSize: '11px', color: 'var(--tx-3)', lineHeight: 1.7 }}>
+                  我们持续补充内容中。可尝试搜索：<br />
+                  <span style={{ color: 'var(--ac)' }}>七杀朝斗 / 双禄朝垣 / 化忌 / 紫微 / 命宫 / 机月同梁</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '13px' }}>请输入要搜索的关键词</div>
+            )}
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {results.map((r, i) => (
-              <Link
-                key={i}
-                href={`/library/${r.bookSlug}/${r.chapterIdx}`}
-                style={{
-                  display: 'block',
-                  padding: '14px 18px',
-                  background: 'var(--bg-card)',
-                  border: '1px solid rgba(184,146,42,0.15)',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  transition: 'all 0.2s',
-                }}
-                className="hover:border-amber-400"
-              >
-                <div style={{ fontSize: '11px', color: 'var(--tx-3)', letterSpacing: '0.15em', marginBottom: '4px' }}>
-                  《{r.bookTitle}》 · 第 {r.chapterIdx + 1} 章 {r.chapterTitle}
-                </div>
-                <div style={{ fontSize: '14px', color: 'var(--tx-0)', lineHeight: 1.7 }}>
-                  {r.snippet}
-                </div>
-              </Link>
-            ))}
+            {hits.map((hit, i) => {
+              const ctx = getParagraphById(hit.paragraphId);
+              const chapterIdx = ctx?.chapterIdx ?? 0;
+              return (
+                <Link
+                  key={i}
+                  href={`/library/${hit.bookSlug}/${chapterIdx}#${hit.paragraphId}`}
+                  style={{
+                    display: 'block',
+                    background: 'var(--bg-card)',
+                    padding: '16px 20px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(184,146,42,0.18)',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    transition: 'border-color 0.15s',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '11px',
+                    color: 'var(--tx-3)',
+                    marginBottom: '8px',
+                    letterSpacing: '0.1em',
+                  }}>
+                    <span style={{ color: 'var(--ac)', fontWeight: 600 }}>《{hit.bookTitle}》</span>
+                    <span style={{ opacity: 0.5 }}>·</span>
+                    <span>{hit.chapterTitle}</span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      color: 'var(--tx-0)',
+                      lineHeight: 1.9,
+                      letterSpacing: '0.02em',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: hit.snippet }}
+                  />
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-export default function LibrarySearchPage() {
-  return (
-    <Suspense fallback={<div className="max-w-3xl mx-auto px-6 py-12" style={{ color: 'var(--tx-3)', fontSize: '13px' }}>加载中…</div>}>
-      <SearchResults />
-    </Suspense>
+      <style>{`
+        mark { background: rgba(184,146,42,0.3); color: #8b6a14; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+      `}</style>
+    </div>
   );
 }

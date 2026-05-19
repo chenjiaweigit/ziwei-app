@@ -19,8 +19,8 @@ const config: Config = {
         tx: {
           0: "#0D0D0B",
           1: "#1A1A18",
-          2: "#3a3a35",
-          3: "#6a6a62",
+          2: "#4A4A45",
+          3: "#8A8A82",
           inv: "#F0EDE8",
         },
         ac: {

@@ -28,9 +28,6 @@ export function getBookBySlug(slug: string): Book | null {
   return ALL_BOOKS.find(b => b.slug === slug) ?? null;
 }
 
-/** findBook — getBookBySlug 别名 */
-export const findBook = getBookBySlug;
-
 /** 按章节序号取章节 */
 export function getChapter(bookSlug: string, chapterIdx: number) {
   const book = getBookBySlug(bookSlug);
@@ -54,19 +51,24 @@ export function getParagraphById(id: string) {
   return null;
 }
 
+/**
+ * 全文搜索
+ *
+ * 简单子字符串匹配（不分词，对中文 OK）
+ * 大小写不敏感、繁简转换暂不支持
+ */
 export function searchClassics(query: string, limit = 30): SearchHit[] {
   const q = query.trim();
   if (q.length < 1) return [];
 
   const hits: SearchHit[] = [];
   for (const book of ALL_BOOKS) {
-    for (let ci = 0; ci < book.chapters.length; ci++) {
-      const chapter = book.chapters[ci];
-      for (let pi = 0; pi < chapter.paragraphs.length; pi++) {
-        const p = chapter.paragraphs[pi];
+    for (const chapter of book.chapters) {
+      for (const p of chapter.paragraphs) {
         const idx = p.text.indexOf(q);
         if (idx < 0) continue;
 
+        // 提取上下文（前后各 40 字）
         const start = Math.max(0, idx - 40);
         const end = Math.min(p.text.length, idx + q.length + 40);
         const before = p.text.slice(start, idx);
@@ -82,9 +84,7 @@ export function searchClassics(query: string, limit = 30): SearchHit[] {
         hits.push({
           bookSlug: book.slug,
           bookTitle: book.title,
-          chapterIdx: ci,
           chapterTitle: chapter.title,
-          paragraphIdx: pi,
           paragraphId: p.id,
           snippet,
           text: p.text,
