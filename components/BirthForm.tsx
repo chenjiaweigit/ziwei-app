@@ -149,22 +149,20 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
   };
 
   // ─── 样式变量 ────────────────────────────────────────────
-  const bg = isDark ? 'rgba(8,16,40,0.85)' : 'rgba(255,255,255,0.92)';
-  const border = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(200,160,60,0.2)';
-  // 暗色模式标签提亮：从 rgba(74,112,144,1) → rgba(180,200,225,0.9)
-  const labelClr = isDark ? 'rgba(180,200,225,0.9)' : 'rgba(120,80,10,0.55)';
-  const inputBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,252,240,0.8)';
-  const inputBorder = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(200,160,60,0.25)';
-  // 输入文字提亮：从 #c8d8f0 → #e8eef8
+  const bg = isDark ? 'rgba(8,16,40,0.92)' : 'rgba(255,255,255,0.95)';
+  const border = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(200,160,60,0.35)';
+  const labelClr = isDark ? 'rgba(180,200,225,0.9)' : 'rgba(80,60,20,0.75)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,252,240,0.95)';
+  const inputBorder = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(200,160,60,0.4)';
   const inputClr = isDark ? '#e8eef8' : '#2a1a00';
-  const focusBorder = isDark ? 'rgba(212,168,67,0.5)' : 'rgba(180,120,20,0.5)';
+  const focusBorder = isDark ? 'rgba(212,168,67,0.6)' : 'rgba(180,120,20,0.6)';
   const errorClr = isDark ? '#f87171' : '#dc2626';
-  const panelBg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,250,235,0.7)';
-  const panelBorder = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(200,160,60,0.2)';
-  const goldText = isDark ? '#d4a843' : '#7a5008';
-  const summaryBg = isDark ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.07)';
-  const summaryBorder = isDark ? 'rgba(37,99,235,0.35)' : 'rgba(37,99,235,0.25)';
-  const summaryClr = isDark ? 'rgba(147,197,253,0.9)' : 'rgba(37,99,235,0.85)';
+  const panelBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,250,235,0.85)';
+  const panelBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(200,160,60,0.35)';
+  const goldText = isDark ? '#d4a843' : '#8a6008';
+  const summaryBg = isDark ? 'rgba(37,99,235,0.15)' : 'rgba(37,99,235,0.12)';
+  const summaryBorder = isDark ? 'rgba(37,99,235,0.4)' : 'rgba(37,99,235,0.35)';
+  const summaryClr = isDark ? 'rgba(147,197,253,0.95)' : 'rgba(37,99,235,0.9)';
 
   const inputStyle = {
     background: inputBg,
@@ -218,7 +216,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
         {steps.map((done, i) => (
           <motion.div
             key={i}
-            animate={{ background: done ? (isDark ? '#d4a843' : '#b07820') : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(200,160,60,0.15)') }}
+            animate={{ background: done ? (isDark ? '#d4a843' : '#b07820') : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(200,160,60,0.25)') }}
             transition={{ duration: 0.3 }}
             style={{ flex: 1, height: '2px', borderRadius: '2px' }}
           />
@@ -325,7 +323,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              style={{ fontSize: '10px', color: isDark ? 'rgba(180,210,235,0.85)' : 'rgba(100,70,10,0.5)', marginTop: '5px' }}
+              style={{ fontSize: '10px', color: isDark ? 'rgba(180,210,235,0.9)' : 'rgba(80,50,10,0.7)', marginTop: '5px' }}
             >
               {form.city || '（请选择城市）'} · 经度 {form.longitude.toFixed(1)}°E · 时差 {offsetMin > 0 ? '+' : ''}{offsetMin} 分钟
             </motion.p>
@@ -335,7 +333,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              style={{ fontSize: '10px', color: isDark ? 'rgba(165,185,210,0.7)' : 'rgba(140,100,20,0.45)', marginTop: '5px' }}
+              style={{ fontSize: '10px', color: isDark ? 'rgba(165,185,210,0.8)' : 'rgba(100,70,20,0.65)', marginTop: '5px' }}
             >
               * 倪海夏批命用真太阳时，建议填写出生地以自动校正时辰
             </motion.p>
@@ -369,12 +367,12 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
           </div>
           {/* 真太阳时结果 */}
           <div style={{ textAlign: 'center', padding: '4px 0' }}>
-            <span style={{ fontSize: '10px', color: isDark ? 'rgba(170,195,220,0.75)' : 'rgba(140,100,20,0.5)' }}>真太阳时 → </span>
+            <span style={{ fontSize: '10px', color: isDark ? 'rgba(170,195,220,0.85)' : 'rgba(100,70,20,0.7)' }}>真太阳时 → </span>
             <span style={{ fontSize: '15px', color: goldText, fontWeight: 600, letterSpacing: '0.08em' }}>
               {SHICHEN_NAMES[branch]}时
             </span>
             {shichenInfo && (
-              <span style={{ fontSize: '10px', color: isDark ? 'rgba(170,195,220,0.75)' : 'rgba(140,100,20,0.5)', marginLeft: '4px' }}>
+              <span style={{ fontSize: '10px', color: isDark ? 'rgba(170,195,220,0.85)' : 'rgba(100,70,20,0.7)', marginLeft: '4px' }}>
                 （{shichenInfo.range}）
               </span>
             )}
@@ -387,7 +385,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
             onChange={e => setForm({ ...form, unknownTime: e.target.checked })}
             style={{ width: '14px', height: '14px', borderRadius: '4px', cursor: 'pointer' }}
           />
-          <span style={{ fontSize: '10px', color: isDark ? 'rgba(165,185,210,0.7)' : 'rgba(140,100,20,0.45)' }}>
+          <span style={{ fontSize: '10px', color: isDark ? 'rgba(165,185,210,0.8)' : 'rgba(100,70,20,0.65)' }}>
             不知道出生时间，以子时（23:00–01:00）起盘
           </span>
         </label>
@@ -415,7 +413,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
                   fontWeight: 500,
                   border: `1px solid ${active ? `rgba(${accent},0.6)` : inputBorder}`,
                   background: active ? `rgba(${accent},0.08)` : inputBg,
-                  color: active ? `rgba(${accent},0.9)` : (isDark ? 'rgba(190,205,225,0.7)' : 'rgba(100,80,40,0.4)'),
+                  color: active ? `rgba(${accent},0.95)` : (isDark ? 'rgba(190,205,225,0.8)' : 'rgba(80,60,30,0.6)'),
                   transition: 'all 0.2s',
                   cursor: 'pointer',
                 }}

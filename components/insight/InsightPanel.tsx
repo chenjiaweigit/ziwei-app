@@ -20,11 +20,5 @@ interface InsightPanelProps {
 }
 
 export default function InsightPanel({ chart, focus, onClearFocus }: InsightPanelProps) {
-  return (
-    <InsightPanelOriginal
-      chart={chart}
-      selectedPalace={focus?.palace ?? null}
-      selectedSiHua={null}
-    />
-  );
+  return <InsightPanelOriginal chart={chart} selectedPalace={focus?.palace ?? null} selectedSiHua={null} />;
 }

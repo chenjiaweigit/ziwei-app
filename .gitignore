@@ -9,3 +9,4 @@ dist/
 
 /lib/generated/prisma
 dev.db
+data/
