@@ -83,11 +83,11 @@ export default function PalaceCell({
           ? 'rgba(212,168,67,0.04)'
           : 'var(--t-bg)',
         boxShadow: isCurrentDaXian
-          ? 'inset 3px 0 0 rgba(147,51,234,0.5)'
+          ? 'inset 4px 0 0 rgba(147,51,234,0.7)'
           : isSelected
-          ? 'inset 0 0 0 1.5px rgba(37,99,235,0.7)'
+          ? 'inset 0 0 0 2px rgba(37,99,235,0.9)'
           : isSanFang
-          ? 'inset 0 0 0 1px rgba(37,99,235,0.4)'
+          ? 'inset 0 0 0 1.5px rgba(37,99,235,0.5)'
           : 'none',
       }}
     >

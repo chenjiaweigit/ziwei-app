@@ -118,9 +118,9 @@ export default function ChartBoard({ chart, onStarSelect, onPalaceSelect, onSiHu
         style={{
           gridTemplateColumns: 'repeat(4, 1fr)',
           gridTemplateRows: 'repeat(4, auto)',
-          gap: '1px',
+          gap: '2px',
           background: 'var(--t-border)',
-          border: '1px solid var(--t-border)',
+          border: '2px solid var(--t-border)',
           boxShadow: '0 4px 32px rgba(0,0,0,0.15)',
         }}
       >
