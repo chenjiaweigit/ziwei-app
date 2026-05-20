@@ -261,7 +261,8 @@ const PALACE_ROLES: Record<string, string> = {
 
 /** Render AI markdown: **【Title】** → gold header, **bold** → strong */
 function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
-  const lines = text.split('\n');
+  const processed = text.replace(/<br\s*\/?>/gi, '\n');
+  const lines = processed.split('\n');
   return (
     <div className="space-y-0.5">
       {lines.map((line, i) => {

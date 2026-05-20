@@ -8,7 +8,8 @@ import { useTheme } from '@/components/ThemeProvider';
 
 // ─── AiContent 渲染器（与 InsightPanel 一致）────────────────
 function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
-  const lines = text.split('\n');
+  const processed = text.replace(/<br\s*\/?>/gi, '\n');
+  const lines = processed.split('\n');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       {lines.map((line, i) => {
