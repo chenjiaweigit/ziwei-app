@@ -3,23 +3,86 @@ import type { ZiweiChart } from '@/lib/ziwei/types';
 import { SYSTEM_PROMPT, TOPIC_PROMPTS } from './prompts';
 import { extractChartContext } from './knowledge';
 
-function getClient(): OpenAI {
-  const provider = process.env.AI_PROVIDER || 'deepseek';
+interface ProviderConfig {
+  provider: string;
+  baseURL: string;
+  apiKey: string;
+  model: string;
+  retryCount: number;
+}
 
-  if (provider === 'deepseek') {
-    return new OpenAI({
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey: process.env.DEEPSEEK_API_KEY || '',
+function getProviderConfigs(): ProviderConfig[] {
+  const configs: ProviderConfig[] = [];
+
+  const slots = ['PRIMARY', 'PROVIDER1', 'PROVIDER2'];
+  for (const slot of slots) {
+    const baseURL = process.env[`${slot}_BASE_URL`];
+    const apiKey = process.env[`${slot}_API_KEY`];
+    if (!baseURL || !apiKey) continue;
+
+    configs.push({
+      provider: process.env[`${slot}_PROVIDER`] || slot.toLowerCase(),
+      baseURL,
+      apiKey,
+      model: process.env[`${slot}_MODEL`] || 'gpt-4o-mini',
+      retryCount: Math.max(0, parseInt(process.env[`${slot}_RETRY_COUNT`] || '1', 10)),
     });
   }
 
-  return new OpenAI({
-    baseURL: process.env.MIMO_BASE_URL || 'https://api.deepseek.com/v1',
-    apiKey: process.env.MIMO_API_KEY || process.env.DEEPSEEK_API_KEY || '',
-  });
+  if (configs.length === 0) {
+    const legacyApiKey = process.env.DEEPSEEK_API_KEY;
+    if (legacyApiKey) {
+      configs.push({
+        provider: process.env.AI_PROVIDER || 'deepseek',
+        baseURL: process.env.MIMO_BASE_URL || 'https://api.deepseek.com/v1',
+        apiKey: legacyApiKey,
+        model: process.env.AI_MODEL || 'deepseek-chat',
+        retryCount: 1,
+      });
+    }
+    if (process.env.MIMO_API_KEY && process.env.MIMO_BASE_URL) {
+      configs.push({
+        provider: 'mimo',
+        baseURL: process.env.MIMO_BASE_URL,
+        apiKey: process.env.MIMO_API_KEY,
+        model: process.env.AI_MODEL || 'deepseek-chat',
+        retryCount: 1,
+      });
+    }
+  }
+
+  return configs;
 }
 
-const MODEL = process.env.AI_MODEL || 'deepseek-chat';
+async function withFallback<T>(
+  buildRequest: (config: ProviderConfig) => Promise<T>,
+): Promise<T> {
+  const configs = getProviderConfigs();
+
+  if (configs.length === 0) {
+    console.error('[AI] No valid provider configured. Set PRIMARY_AI_BASE_URL and PRIMARY_AI_API_KEY in .env.local');
+    throw new Error('AI 服务未配置');
+  }
+
+  for (const config of configs) {
+    const attempts = config.retryCount + 1;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await buildRequest(config);
+      } catch (err) {
+        const status = (err as any)?.status;
+        console.error(
+          `[AI] ${config.provider} attempt ${i + 1}/${attempts} failed` +
+          (status ? ` (HTTP ${status})` : '') +
+          `: ${err instanceof Error ? err.message : err}`
+        );
+      }
+    }
+    console.error(`[AI] ${config.provider} exhausted, falling back to next provider`);
+  }
+
+  throw new Error('所有 AI 服务均不可用，请稍后重试');
+}
 
 const contextCache = new WeakMap<ZiweiChart, string>();
 
@@ -36,22 +99,22 @@ export async function streamInterpret(
   chart: ZiweiChart,
   messages: { role: 'user' | 'assistant'; content: string }[],
 ): Promise<ReadableStream> {
-  const client = getClient();
   const context = buildContext(chart);
-
   const systemMessage = `${SYSTEM_PROMPT}\n\n以下是命主的命盘数据。请据此给出解读：\n\n${context}`;
-
   const encoder = new TextEncoder();
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemMessage },
-      ...messages,
-    ],
-    temperature: 0.7,
-    max_tokens: 4096,
-    stream: true,
+  const response = await withFallback(async (config) => {
+    const client = new OpenAI({ baseURL: config.baseURL, apiKey: config.apiKey });
+    return client.chat.completions.create({
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemMessage },
+        ...messages,
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+      stream: true,
+    });
   });
 
   return new ReadableStream({
@@ -74,6 +137,7 @@ export async function streamInterpret(
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        console.error('[AI] Stream error:', error);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: '解读生成失败' })}\n\n`),
         );
@@ -88,7 +152,6 @@ export async function streamHeming(
   chartB: ZiweiChart,
   question?: string,
 ): Promise<ReadableStream> {
-  const client = getClient();
   const contextA = buildContext(chartA);
   const contextB = buildContext(chartB);
 
@@ -110,18 +173,21 @@ ${contextA}
 乙方命盘：
 ${contextB}`;
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: question || '请分析这两人的缘分匹配度、感情走向与相处建议，按以下结构输出：\n\n**【双方命格总览】**\n各自命宫主星与核心特质。\n\n**【感情匹配分析】**\n夫妻宫星曜互动、感情模式的互补与冲突。\n\n**【事业与财运互动】**\n双方在事业和财务上的配合度。\n\n**【大限同步性】**\n当前大限走向是否一致，关键时间节点。\n\n**【相处建议】**\n基于命盘的具体相处策略与建议。' },
-    ],
-    temperature: 0.7,
-    max_tokens: 1200,
-    stream: true,
-  });
-
   const encoder = new TextEncoder();
+
+  const response = await withFallback(async (config) => {
+    const client = new OpenAI({ baseURL: config.baseURL, apiKey: config.apiKey });
+    return client.chat.completions.create({
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: question || '请分析这两人的缘分匹配度、感情走向与相处建议，按以下结构输出：\n\n**【双方命格总览】**\n各自命宫主星与核心特质。\n\n**【感情匹配分析】**\n夫妻宫星曜互动、感情模式的互补与冲突。\n\n**【事业与财运互动】**\n双方在事业和财务上的配合度。\n\n**【大限同步性】**\n当前大限走向是否一致，关键时间节点。\n\n**【相处建议】**\n基于命盘的具体相处策略与建议。' },
+      ],
+      temperature: 0.7,
+      max_tokens: 1200,
+      stream: true,
+    });
+  });
 
   return new ReadableStream({
     async start(controller) {
@@ -162,6 +228,7 @@ ${contextB}`;
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
+        console.error('[AI] Stream error:', error);
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: '解读生成失败' })}\n\n`),
         );
@@ -176,20 +243,20 @@ export async function generateInterpretation(
   topic?: string,
 ): Promise<string> {
   if (!topic) topic = 'overview';
-
   const prompt = TOPIC_PROMPTS[topic] || TOPIC_PROMPTS.overview;
-  const client = getClient();
   const context = buildContext(chart);
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: `${SYSTEM_PROMPT}\n\n命盘数据：\n${context}` },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.7,
-    max_tokens: 4096,
+  return withFallback(async (config) => {
+    const client = new OpenAI({ baseURL: config.baseURL, apiKey: config.apiKey });
+    const response = await client.chat.completions.create({
+      model: config.model,
+      messages: [
+        { role: 'system', content: `${SYSTEM_PROMPT}\n\n命盘数据：\n${context}` },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4096,
+    });
+    return response.choices?.[0]?.message?.content || '解读生成失败';
   });
-
-  return response.choices?.[0]?.message?.content || '解读生成失败';
 }

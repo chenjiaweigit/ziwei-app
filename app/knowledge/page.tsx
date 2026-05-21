@@ -28,7 +28,7 @@ export default function KnowledgeHomePage() {
           倪师方法论 · 知识库
         </div>
         <Link href="/library" style={{ fontSize: '12px', color: 'var(--ac)', letterSpacing: '0.2em', textDecoration: 'none' }}>
-          古籍 →
+          古籍原典 →
         </Link>
       </div>
 

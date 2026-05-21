@@ -156,3 +156,47 @@ export interface TianjiEpisode {
   /** 关键内容 */
   highlights: string[];
 }
+
+/** 八卦类型 */
+export interface Trigram {
+  name: string;
+  symbol: string;
+  attribute: string;
+  element: string;
+  number: number;
+}
+
+/** 六爻中的一爻 */
+export interface YaoLine {
+  position: number;
+  value: number;
+  yin: boolean;
+  changing: boolean;
+  label: string;
+}
+
+/** 起卦方式 */
+export type DivinationMethod = 'coin' | 'number' | 'time';
+
+/** 起卦结果 */
+export interface DivinationResult {
+  method: DivinationMethod;
+  /** 本卦六爻 */
+  lines: YaoLine[];
+  /** 本卦编号 */
+  hexagramNumber: number;
+  /** 本卦数据 */
+  hexagram: Hexagram;
+  /** 是否有变爻 */
+  hasChanging: boolean;
+  /** 动爻位置（1-6, 0 表示无） */
+  changingPosition: number;
+  /** 变卦编号（无变爻时与主卦相同） */
+  changedNumber: number;
+  /** 变卦数据 */
+  changed: Hexagram;
+  /** 互卦编号 */
+  innerNumber: number;
+  /** 互卦数据 */
+  inner: Hexagram;
+}

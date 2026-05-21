@@ -11,9 +11,14 @@
  */
 
 export * from './types';
-export { TIANJI_MODULES, HEXAGRAMS, FENGSHUI_ENTRIES, TIANJI_EPISODES, TIANJI_QUOTES, TIANJI_STATS } from './tianji';
+export {
+  TIANJI_MODULES, HEXAGRAMS, TRIGRAMS, FENGSHUI_ENTRIES, TIANJI_EPISODES, TIANJI_QUOTES, TIANJI_STATS,
+  getHexagramByTrigrams, getHexagramByNumber, getHexagramByLines,
+  linesToTrigramIndex, getChangedHexagram, getInnerHexagram,
+} from './tianji';
 export { RENJI_MODULES, ACU_EXPERIENCES, TRANS_NEEDLING, HANTANG_FORMULAS, CLASSIC_FORMULAS, RENJI_STATS } from './renji';
 export { DIJI_MODULES, DIJI_STATS } from './diji';
+export { coinDivination, numberDivination, timeDivination, buildResult, tossOnce } from './yijing';
 
 /** 倪海厦完整传记 */
 export const NI_HAIXIA_BIO = {

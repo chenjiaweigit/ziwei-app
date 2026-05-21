@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import TopBar from '@/components/TopBar';
+import TabBar from '@/components/TabBar';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -43,7 +45,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen">
         <ThemeProvider>
-          {children}
+          <TopBar />
+          <main style={{ paddingTop: '40px', paddingBottom: '52px', minHeight: '100vh' }}>
+            {children}
+          </main>
+          <TabBar />
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

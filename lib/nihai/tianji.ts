@@ -12,7 +12,7 @@
  *   推命     → 河洛数理派
  */
 
-import type { NiModule, Hexagram, FengShuiEntry, TianjiEpisode } from './types';
+import type { NiModule, Hexagram, FengShuiEntry, TianjiEpisode, Trigram } from './types';
 
 // ─── 天纪模块 ────────────────────────────────────────────
 export const TIANJI_MODULES: NiModule[] = [
@@ -422,6 +422,55 @@ export const HEXAGRAMS: Hexagram[] = [
   { number: 63, name: '既济', composition: '水火既济', upper: '坎', lower: '离', meaning: '亨小，利贞，初吉终乱', niInterpretation: '事已成就之卦，但需谨防衰败', divination: '事情已成，但需注意善后' },
   { number: 64, name: '未济', composition: '火水未济', upper: '离', lower: '坎', meaning: '亨，小狐汔济，濡其尾', niInterpretation: '尚未完成之卦，事在人为', divination: '事未完成，需继续努力' },
 ];
+
+// ─── 八卦定义 ────────────────────────────────────────────
+export const TRIGRAMS: Trigram[] = [
+  { name: '乾', symbol: '☰', attribute: '健', element: '金', number: 1 },
+  { name: '兑', symbol: '☱', attribute: '悦', element: '金', number: 2 },
+  { name: '离', symbol: '☲', attribute: '丽', element: '火', number: 3 },
+  { name: '震', symbol: '☳', attribute: '动', element: '木', number: 4 },
+  { name: '巽', symbol: '☴', attribute: '入', element: '木', number: 5 },
+  { name: '坎', symbol: '☵', attribute: '陷', element: '水', number: 6 },
+  { name: '艮', symbol: '☶', attribute: '止', element: '土', number: 7 },
+  { name: '坤', symbol: '☷', attribute: '顺', element: '土', number: 8 },
+];
+
+const TRIGRAM_NAMES = ['乾', '兑', '离', '震', '巽', '坎', '艮', '坤'] as const;
+
+export function getHexagramByTrigrams(upper: string, lower: string): Hexagram | undefined {
+  return HEXAGRAMS.find(h => h.upper === upper && h.lower === lower);
+}
+
+export function getHexagramByNumber(n: number): Hexagram | undefined {
+  return HEXAGRAMS.find(h => h.number === n);
+}
+
+export function getHexagramByLines(lines: number[]): Hexagram | undefined {
+  const lower = lines.slice(0, 3);
+  const upper = lines.slice(3, 6);
+  const lowerName = TRIGRAM_NAMES[linesToTrigramIndex(lower)];
+  const upperName = TRIGRAM_NAMES[linesToTrigramIndex(upper)];
+  return getHexagramByTrigrams(upperName, lowerName);
+}
+
+export function linesToTrigramIndex(lines: number[]): number {
+  let binary = 0;
+  for (let i = 0; i < 3; i++) {
+    if (lines[i] % 2 === 1) binary += Math.pow(2, i);
+  }
+  return 7 - binary;
+}
+
+export function getChangedHexagram(lines: number[], changePos: number): Hexagram | undefined {
+  const newLines = [...lines];
+  newLines[changePos] = newLines[changePos] % 2 === 1 ? newLines[changePos] - 1 : newLines[changePos] + 1;
+  return getHexagramByLines(newLines);
+}
+
+export function getInnerHexagram(lines: number[]): Hexagram | undefined {
+  const innerLines = [lines[1], lines[2], lines[3], lines[2], lines[3], lines[4]];
+  return getHexagramByLines(innerLines);
+}
 
 // ─── 堪舆学条目 ──────────────────────────────────────────
 export const FENGSHUI_ENTRIES: FengShuiEntry[] = [
