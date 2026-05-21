@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['lunar-javascript'],
+  serverExternalPackages: [
+    'iztro',
+    'lunar-javascript',
+    'openai',
+    'jsonwebtoken',
+  ],
 };
 
 module.exports = nextConfig;
