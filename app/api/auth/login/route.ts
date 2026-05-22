@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请输入手机号' }, { status: 400 });
     }
 
-    const user = db.users.findByPhone(phone);
+    const user = await db.users.findByPhone(phone);
     if (!user) {
       return NextResponse.json({ error: '用户不存在，请先注册' }, { status: 404 });
     }

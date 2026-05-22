@@ -1,6 +1,8 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Lunar, LunarYear } from 'lunar-javascript';
+import { formToBirthInfo } from '@/lib/ziwei/share';
 import type { BirthInfo } from '@/lib/ziwei/types';
 import { SHICHEN } from '@/lib/ziwei/constants';
 import { useTheme } from '@/components/ThemeProvider';
@@ -8,9 +10,11 @@ import { PROVINCES } from '@/lib/ziwei/cities';
 
 export interface BirthFormState {
   name: string;
+  calendar: 'solar' | 'lunar';
   year: string;
   month: string;
   day: string;
+  isLeapMonth: boolean;
   clockHour: string;
   clockMinute: string;
   unknownTime: boolean;
@@ -31,6 +35,8 @@ interface BirthFormProps {
 
 const SHICHEN_NAMES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 
+const LMONTH_NAMES = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
+
 /** 根据北京时间 + 经度计算真太阳时时辰支 (0-11) */
 function calcTrueSolarBranch(clockHour: number, clockMinute: number, longitude: number): number {
   const clockMins = clockHour * 60 + clockMinute;
@@ -40,11 +46,31 @@ function calcTrueSolarBranch(clockHour: number, clockMinute: number, longitude: 
   return Math.floor((solar - 60) / 120) + 1;
 }
 
-/** 检查日期是否合法 */
+/** 检查公历日期是否合法 */
 function isValidDate(y: number, m: number, d: number): boolean {
   if (!y || !m || !d) return false;
   const date = new Date(y, m - 1, d);
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+/** 检查农历日期是否合法 */
+function isValidLunarDate(y: number, m: number, d: number, isLeap: boolean): boolean {
+  if (!y || !m || !d) return false;
+  try {
+    Lunar.fromYmd(y, isLeap ? -m : m, d);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 获取农历日名（初一 ~ 三十） */
+function getLunarDayName(day: number): string {
+  const d = ['一','二','三','四','五','六','七','八','九','十'];
+  if (day <= 10) return `初${d[day - 1]}`;
+  if (day === 20) return '二十';
+  if (day < 20) return `十${d[day - 11]}`;
+  return `廿${d[day - 21]}`;
 }
 
 export default function BirthForm({ onSubmit, loading, initialData, onFormSave, hideSubmit }: BirthFormProps) {
@@ -53,9 +79,11 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
 
   const [form, setForm] = useState<BirthFormState>({
     name: initialData?.name ?? '',
+    calendar: initialData?.calendar ?? 'solar',
     year: initialData?.year ?? '',
     month: initialData?.month ?? '',
     day: initialData?.day ?? '',
+    isLeapMonth: initialData?.isLeapMonth ?? false,
     clockHour: initialData?.clockHour ?? '8',
     clockMinute: initialData?.clockMinute ?? '0',
     unknownTime: initialData?.unknownTime ?? false,
@@ -91,6 +119,30 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
   const offsetMin = Math.round((form.longitude - 120) * 4);
   const shichenInfo = SHICHEN[branch];
 
+  // 农历年份信息（闰月检测）
+  const lunarYearInfo = useMemo(() => {
+    if (form.calendar !== 'lunar' || !form.year) return { leapMonth: 0 };
+    try {
+      const year = parseInt(form.year);
+      return year ? { leapMonth: LunarYear.fromYear(year).getLeapMonth() } : { leapMonth: 0 };
+    } catch {
+      return { leapMonth: 0 };
+    }
+  }, [form.calendar, form.year]);
+
+  // 农历月份选项（含可能的闰月）
+  const lunarMonthOptions = useMemo(() => {
+    const base = Array.from({ length: 12 }, (_, i) => ({
+      value: String(i + 1),
+      label: LMONTH_NAMES[i],
+    }));
+    const lm = lunarYearInfo.leapMonth;
+    if (lm > 0) {
+      base.splice(lm, 0, { value: `-${lm}`, label: `闰${LMONTH_NAMES[lm - 1]}` });
+    }
+    return base;
+  }, [lunarYearInfo.leapMonth]);
+
   // ─── 校验逻辑 ───────────────────────────────────────────
   const y = parseInt(form.year) || 0;
   const m = parseInt(form.month) || 0;
@@ -102,7 +154,11 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
       : '',
     month: !form.month ? '请选择月份' : '',
     day: !form.day ? '请选择日期'
-      : form.year && form.month && !isValidDate(y, m, d) ? `${m}月没有${d}日`
+      : form.year && form.month && !(
+          form.calendar === 'lunar'
+            ? isValidLunarDate(y, m, d, form.isLeapMonth)
+            : isValidDate(y, m, d)
+        ) ? `${m}月没有${d}日`
       : '',
   };
   const hasError = Object.values(errors).some(Boolean);
@@ -120,7 +176,9 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
   const showSummary = steps[0] && steps[2] && !hasError;
   const summaryText = showSummary
     ? [
-        `${y}年${m}月${d}日`,
+        form.calendar === 'lunar'
+          ? `农历${y}年${form.isLeapMonth ? '闰' : ''}${LMONTH_NAMES[(parseInt(form.month) || 1) - 1]}${getLunarDayName(d)}`
+          : `${y}年${m}月${d}日`,
         form.city || (form.province ? form.province : ''),
         form.unknownTime ? '时辰不详' : `${SHICHEN_NAMES[branch]}时`,
         form.gender === 'male' ? '男' : '女',
@@ -145,7 +203,7 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
     setTouched({ year: true, month: true, day: true });
     if (hasError) return;
     onFormSave?.({ ...form });
-    onSubmit({ year: y, month: m, day: d, hour: branch, gender: form.gender, name: form.name || undefined, province: form.province || undefined, city: form.city || undefined, longitude: form.province ? form.longitude : undefined });
+    onSubmit(formToBirthInfo(form));
   };
 
   // ─── 样式变量 ────────────────────────────────────────────
@@ -237,9 +295,38 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
         />
       </div>
 
+      {/* ── 日历类型切换 ── */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', fontSize: '11px', color: labelClr, marginBottom: '6px', letterSpacing: '0.05em' }}>历法选择</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {(['solar', 'lunar'] as const).map(cal => (
+            <motion.button
+              key={cal}
+              type="button"
+              onClick={() => setForm({ ...form, calendar: cal, month: '', day: '', isLeapMonth: false })}
+              whileTap={{ scale: 0.97 }}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '14px',
+                fontSize: '13px',
+                fontWeight: 500,
+                border: `1px solid ${form.calendar === cal ? 'rgba(212,168,67,0.6)' : inputBorder}`,
+                background: form.calendar === cal ? 'rgba(212,168,67,0.1)' : inputBg,
+                color: form.calendar === cal ? goldText : (isDark ? 'rgba(190,205,225,0.8)' : 'rgba(80,60,30,0.6)'),
+                transition: 'all 0.2s',
+                cursor: 'pointer',
+              }}
+            >
+              {cal === 'solar' ? '公历' : '农历'}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
       {/* ── 出生日期 ── */}
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '11px', color: labelClr, marginBottom: '6px', letterSpacing: '0.05em' }}>出生日期（公历）</label>
+        <label style={{ display: 'block', fontSize: '11px', color: labelClr, marginBottom: '6px', letterSpacing: '0.05em' }}>出生日期（{form.calendar === 'lunar' ? '农历' : '公历'}）</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
           <div>
             <select
@@ -257,14 +344,23 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
           </div>
           <div>
             <select
-              value={form.month}
-              onChange={e => { setForm({ ...form, month: e.target.value }); setTouched(t => ({ ...t, month: true })); }}
+              value={form.calendar === 'lunar' ? (form.isLeapMonth ? `-${form.month}` : form.month) : form.month}
+              onChange={e => {
+                const val = e.target.value;
+                if (form.calendar === 'lunar') {
+                  const isLeap = val.startsWith('-');
+                  setForm({ ...form, month: isLeap ? val.slice(1) : val, isLeapMonth: isLeap });
+                } else {
+                  setForm({ ...form, month: val });
+                }
+                setTouched(t => ({ ...t, month: true }));
+              }}
               style={showErr('month') && errors.month ? errorInputStyle : inputStyle}
               required
             >
               <option value="">月份</option>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (
-                <option key={mo} value={String(mo)}>{mo} 月</option>
+              {(form.calendar === 'lunar' ? lunarMonthOptions : Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `${i + 1} 月` }))).map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
             <FieldError msg={showErr('month') ? errors.month : ''} />
@@ -277,8 +373,8 @@ export default function BirthForm({ onSubmit, loading, initialData, onFormSave, 
               required
             >
               <option value="">日期</option>
-              {Array.from({ length: 31 }, (_, i) => i + 1).map(dy => (
-                <option key={dy} value={String(dy)}>{dy} 日</option>
+              {Array.from({ length: form.calendar === 'lunar' ? 30 : 31 }, (_, i) => i + 1).map(dy => (
+                <option key={dy} value={String(dy)}>{form.calendar === 'lunar' ? getLunarDayName(dy) : `${dy} 日`}</option>
               ))}
             </select>
             <FieldError msg={showErr('day') ? errors.day : ''} />

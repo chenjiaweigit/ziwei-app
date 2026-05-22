@@ -176,7 +176,7 @@ export interface YaoLine {
 }
 
 /** 起卦方式 */
-export type DivinationMethod = 'coin' | 'number' | 'time';
+export type DivinationMethod = 'coin' | 'number' | 'time' | 'manual';
 
 /** 起卦结果 */
 export interface DivinationResult {

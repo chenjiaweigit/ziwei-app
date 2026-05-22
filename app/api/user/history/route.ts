@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '未登录' }, { status: 401 });
   }
 
-  const charts = db.charts.findByUser(userId);
+  const charts = await db.charts.findByUser(userId);
   return NextResponse.json(charts.map(c => ({
     id: c.id,
     birthInfo: JSON.parse(c.birthInfo),
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { birthInfo, chart } = await request.json();
-  const record = db.charts.create(userId, birthInfo, chart);
+  const record = await db.charts.create(userId, birthInfo, chart);
 
   return NextResponse.json({ id: record.id, createdAt: record.createdAt });
 }
@@ -35,6 +35,6 @@ export async function DELETE(request: NextRequest) {
   }
 
   const { id } = await request.json();
-  db.charts.delete(id, userId);
+  await db.charts.delete(id, userId);
   return NextResponse.json({ success: true });
 }

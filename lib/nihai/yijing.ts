@@ -98,3 +98,8 @@ export function buildResult(lines: YaoLine[], method: DivinationMethod): Divinat
     inner,
   };
 }
+
+/** 手动起卦：用户直接输入6个爻的值（6=老阴,7=少阳,8=少阴,9=老阳） */
+export function manualDivination(values: number[]): YaoLine[] {
+  return values.map((v, i) => makeYaoLine(v, i));
+}

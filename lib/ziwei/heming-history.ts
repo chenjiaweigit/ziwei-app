@@ -2,13 +2,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { BirthFormState } from '@/components/BirthForm';
 
-const STORAGE_KEY = 'ziwei_history';
+const STORAGE_KEY = 'heming_history';
 const MAX_ENTRIES = 10;
 
-export interface HistoryEntry {
+export interface HemmingEntry {
   id: string;
   label: string;
-  form: BirthFormState;
+  formA: BirthFormState;
+  formB: BirthFormState;
   savedAt: number;
 }
 
@@ -16,20 +17,21 @@ function getToken(): string | null {
   try { return localStorage.getItem('token'); } catch { return null; }
 }
 
-export function useHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+export function useHemmingHistory() {
+  const [history, setHistory] = useState<HemmingEntry[]>([]);
 
   useEffect(() => {
     const t = getToken();
     if (t) {
-      fetch('/api/user/form-history?type=chart', {
+      fetch('/api/user/form-history?type=heming', {
         headers: { Authorization: `Bearer ${t}` },
       }).then(r => r.ok ? r.json() : []).then(data => {
         if (data.length > 0) {
           setHistory(data.map((d: any) => ({
             id: d.id,
             label: d.label,
-            form: d.formData.form,
+            formA: d.formData.formA,
+            formB: d.formData.formB,
             savedAt: new Date(d.createdAt).getTime(),
           })));
         } else {
@@ -48,40 +50,29 @@ export function useHistory() {
     } catch {}
   }
 
-  const save = useCallback((form: BirthFormState) => {
-    const label = [
-      form.name,
-      `${form.year}年${form.month}月${form.day}日`,
-      form.city || form.province || '',
-      form.gender === 'male' ? '男' : '女',
-    ].filter(Boolean).join(' · ');
+  const save = useCallback((formA: BirthFormState, formB: BirthFormState) => {
+    const labelA = [formA.name || `A`, `${formA.year}年${formA.month}月${formA.day}日`, formA.gender === 'male' ? '男' : '女'].filter(Boolean).join(' ');
+    const labelB = [formB.name || `B`, `${formB.year}年${formB.month}月${formB.day}日`, formB.gender === 'male' ? '男' : '女'].filter(Boolean).join(' ');
+    const label = `${labelA} × ${labelB}`;
 
     const t = getToken();
     if (t) {
       fetch('/api/user/form-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
-        body: JSON.stringify({ type: 'chart', label, formData: { form } }),
+        body: JSON.stringify({ type: 'heming', label, formData: { formA, formB } }),
       }).then(r => {
         if (r.ok) r.json().then(({ id, createdAt }) => {
-          setHistory(prev => {
-            const deduped = prev.filter(e =>
-              !(e.form.year === form.year && e.form.month === form.month && e.form.day === form.day && e.form.gender === form.gender && e.form.clockHour === form.clockHour && e.form.clockMinute === form.clockMinute)
-            );
-            return [{ id, label, form, savedAt: new Date(createdAt).getTime() }, ...deduped].slice(0, MAX_ENTRIES);
-          });
+          setHistory(prev => [{ id, label, formA, formB, savedAt: new Date(createdAt).getTime() }, ...prev].slice(0, MAX_ENTRIES));
         });
       });
       return;
     }
 
     const id = Date.now().toString();
-    const entry: HistoryEntry = { id, label, form, savedAt: Date.now() };
+    const entry: HemmingEntry = { id, label, formA, formB, savedAt: Date.now() };
     setHistory(prev => {
-      const deduped = prev.filter(e =>
-        !(e.form.year === form.year && e.form.month === form.month && e.form.day === form.day && e.form.gender === form.gender && e.form.clockHour === form.clockHour && e.form.clockMinute === form.clockMinute)
-      );
-      const updated = [entry, ...deduped].slice(0, MAX_ENTRIES);
+      const updated = [entry, ...prev].slice(0, MAX_ENTRIES);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });

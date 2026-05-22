@@ -19,12 +19,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '无效的会员等级' }, { status: 400 });
   }
 
-  const order = db.payments.create(userId, config.amount, tier);
+  const order = await db.payments.create(userId, config.amount, tier);
 
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + config.months);
 
-  db.users.update(userId, {
+  await db.users.update(userId, {
     membershipTier: tier,
     expiresAt: expiresAt.toISOString(),
   });
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '未登录' }, { status: 401 });
   }
 
-  const user = db.users.findById(userId);
+  const user = await db.users.findById(userId);
   if (!user) {
     return NextResponse.json({ error: '用户不存在' }, { status: 404 });
   }

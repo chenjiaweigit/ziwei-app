@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
 
     const userId = getUserIdFromRequest(request);
     if (userId) {
-      const user = db.users.findById(userId);
+      const user = await db.users.findById(userId);
       const isPro = user?.membershipTier === 'pro' || user?.membershipTier === 'unlimited';
       if (!isPro) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const count = db.charts.countSince(userId, today);
+        const count = await db.charts.countSince(userId, today);
         if (count >= 3) {
           return NextResponse.json(
             { error: '免费用户每天限 3 次解读，升级会员解锁无限次' },

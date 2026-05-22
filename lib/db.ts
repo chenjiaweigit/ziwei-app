@@ -1,7 +1,10 @@
-import fs from 'fs';
-import path from 'path';
+import { eq, and, desc, count, gte } from 'drizzle-orm';
+import { drizzleDb } from './db/client';
+import { users, charts, payments } from './db/schema';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
 
 interface User {
   id: string;
@@ -32,53 +35,19 @@ interface PaymentRecord {
   createdAt: string;
 }
 
-interface DbData {
-  users: Record<string, User>;
-  charts: ChartRecord[];
-  payments: PaymentRecord[];
-  nextId: number;
-}
-
-let data: DbData;
-
-function load(): DbData {
-  try {
-    if (!fs.existsSync(DB_PATH)) {
-      const dir = path.dirname(DB_PATH);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const initial: DbData = { users: {}, charts: [], payments: [], nextId: 1 };
-      fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-  } catch {
-    return { users: {}, charts: [], payments: [], nextId: 1 };
-  }
-}
-
-function save() {
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-}
-
-function uid(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
-data = load();
-
 export const db = {
   users: {
-    findByPhone(phone: string): User | null {
-      return Object.values(data.users).find(u => u.phone === phone) || null;
+    async findByPhone(phone: string): Promise<User | null> {
+      const rows = await drizzleDb.select().from(users).where(eq(users.phone, phone)).limit(1);
+      return rows[0] || null;
     },
-    findById(id: string): User | null {
-      return data.users[id] || null;
+    async findById(id: string): Promise<User | null> {
+      const rows = await drizzleDb.select().from(users).where(eq(users.id, id)).limit(1);
+      return rows[0] || null;
     },
-    create(phone: string, name?: string): User {
+    async create(phone: string, name?: string): Promise<User> {
       const now = new Date().toISOString();
-      const user: User = {
+      const rows = await drizzleDb.insert(users).values({
         id: uid(),
         phone,
         name: name || '',
@@ -87,52 +56,50 @@ export const db = {
         updatedAt: now,
         membershipTier: 'free',
         expiresAt: null,
-      };
-      data.users[user.id] = user;
-      save();
-      return user;
+      }).returning();
+      return rows[0];
     },
-    update(id: string, fields: Partial<User>): User | null {
-      const user = data.users[id];
-      if (!user) return null;
-      Object.assign(user, fields, { updatedAt: new Date().toISOString() });
-      save();
-      return user;
+    async update(id: string, fields: Partial<User>): Promise<User | null> {
+      const rows = await drizzleDb.update(users)
+        .set({ ...fields, updatedAt: new Date().toISOString() })
+        .where(eq(users.id, id))
+        .returning();
+      return rows[0] || null;
     },
   },
 
   charts: {
-    create(userId: string, birthInfo: any, chart: any): ChartRecord {
-      const record: ChartRecord = {
+    async create(userId: string, birthInfo: any, chart: any): Promise<ChartRecord> {
+      const rows = await drizzleDb.insert(charts).values({
         id: uid(),
         userId,
         birthInfo: JSON.stringify(birthInfo),
         chart: JSON.stringify(chart),
         createdAt: new Date().toISOString(),
-      };
-      data.charts.push(record);
-      save();
-      return record;
+      }).returning();
+      return rows[0];
     },
-    findByUser(userId: string): ChartRecord[] {
-      return data.charts
-        .filter(c => c.userId === userId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .slice(0, 20);
+    async findByUser(userId: string): Promise<ChartRecord[]> {
+      return drizzleDb.select().from(charts)
+        .where(eq(charts.userId, userId))
+        .orderBy(desc(charts.createdAt))
+        .limit(20);
     },
-    delete(id: string, userId: string) {
-      data.charts = data.charts.filter(c => !(c.id === id && c.userId === userId));
-      save();
+    async delete(id: string, userId: string) {
+      await drizzleDb.delete(charts)
+        .where(and(eq(charts.id, id), eq(charts.userId, userId)));
     },
-    countSince(userId: string, since: Date): number {
-      return data.charts.filter(c => c.userId === userId && new Date(c.createdAt) >= since).length;
+    async countSince(userId: string, since: Date): Promise<number> {
+      const rows = await drizzleDb.select({ value: count() }).from(charts)
+        .where(and(eq(charts.userId, userId), gte(charts.createdAt, since.toISOString())));
+      return rows[0]?.value ?? 0;
     },
   },
 
   payments: {
-    create(userId: string, amount: number, tier: string): PaymentRecord {
+    async create(userId: string, amount: number, tier: string): Promise<PaymentRecord> {
       const now = new Date().toISOString();
-      const record: PaymentRecord = {
+      const rows = await drizzleDb.insert(payments).values({
         id: uid(),
         userId,
         amount,
@@ -140,10 +107,8 @@ export const db = {
         status: 'paid',
         paidAt: now,
         createdAt: now,
-      };
-      data.payments.push(record);
-      save();
-      return record;
+      }).returning();
+      return rows[0];
     },
   },
 };

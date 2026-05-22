@@ -5,6 +5,8 @@ const nextConfig = {
     'lunar-javascript',
     'openai',
     'jsonwebtoken',
+    'pg',
+    'pg-native',
   ],
 };
 

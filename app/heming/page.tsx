@@ -5,6 +5,7 @@ import BirthForm, { type BirthFormState } from '@/components/BirthForm';
 import { formToBirthInfo } from '@/lib/ziwei/share';
 import type { BirthInfo, ZiweiChart } from '@/lib/ziwei/types';
 import { useTheme } from '@/components/ThemeProvider';
+import { useHemmingHistory } from '@/lib/ziwei/heming-history';
 
 // ─── AiContent 渲染器（与 InsightPanel 一致）────────────────
 function AiContent({ text, streaming }: { text: string; streaming?: boolean }) {
@@ -66,6 +67,8 @@ export default function HemingPage() {
   const [analysisError, setAnalysisError] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
+  const { history: hemingHistory, save: saveHemming, remove: removeHemming } = useHemmingHistory();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // ─── 起盘（单次调用，返回 chart 给统一流程使用）──────────
   const generateChart = useCallback(async (info: BirthInfo): Promise<ZiweiChart | null> => {
@@ -202,7 +205,48 @@ export default function HemingPage() {
           </p>
         </div>
 
-        {/* 双栏表单 */}
+         {/* 历史记录 */}
+          {historyOpen && (
+            <div style={{ ...cardStyle, marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <span style={labelStyle}>历史记录</span>
+                <button onClick={() => setHistoryOpen(false)} style={{
+                  marginLeft: 'auto', fontSize: '18px', color: 'var(--tx-3)',
+                  background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1,
+                }}>×</button>
+              </div>
+              {hemingHistory.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--tx-3)', padding: '8px 0' }}>暂无合盘记录</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {hemingHistory.map(entry => (
+                    <div key={entry.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 14px', background: isDark ? 'rgba(255,255,255,0.04)' : 'white',
+                      border: '1px solid var(--bdr)', borderRadius: '12px', cursor: 'pointer',
+                    }}
+                      onClick={() => { setFormA(entry.formA); setFormB(entry.formB); setHistoryOpen(false); }}
+                    >
+                      <span style={{ fontSize: '11px', color: 'var(--tx-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {entry.label}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--tx-3)', flexShrink: 0 }}>
+                        {new Date(entry.savedAt).toLocaleDateString('zh-CN')}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); removeHemming(entry.id); }}
+                        style={{ fontSize: '14px', color: 'var(--tx-3)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '0.5'}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 双栏表单 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}
           className="heming-grid">
           {/* 甲方 */}
@@ -245,8 +289,26 @@ export default function HemingPage() {
           {!analysis && !analyzing && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: '13px', color: 'var(--tx-3)', marginBottom: '24px', lineHeight: 1.7 }}>
-                填好双方出生信息后，点击下方按钮<br />
-                AI 将基于倪海夏体系深度分析两人缘分匹配度
+             填好双方出生信息后，点击下方按钮<br />
+              AI 将基于倪海夏体系深度分析两人缘分匹配度
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '16px' }}>
+                <button
+                  onClick={() => { if (formA && formB) saveHemming(formA, formB); }}
+                  disabled={!formA || !formB}
+                  style={{
+                    padding: '12px 24px', borderRadius: 'var(--r-pill)', border: '1px solid var(--bdr)',
+                    background: 'transparent', color: 'var(--tx-2)', fontSize: '13px',
+                    cursor: (!formA || !formB) ? 'not-allowed' : 'pointer', opacity: (!formA || !formB) ? 0.5 : 1,
+                  }}
+                >💾 保存记录</button>
+                <button
+                  onClick={() => setHistoryOpen(!historyOpen)}
+                  style={{
+                    padding: '12px 24px', borderRadius: 'var(--r-pill)', border: '1px solid var(--bdr)',
+                    background: 'transparent', color: 'var(--tx-2)', fontSize: '13px', cursor: 'pointer',
+                  }}
+                >📋 历史记录</button>
               </div>
               <button
                 onClick={() => runAnalysis()}
@@ -290,6 +352,19 @@ export default function HemingPage() {
             </div>
           )}
         </div>
+
+        {/* 分析完成后显示保存按钮 */}
+        {analysis && (
+          <div style={{ textAlign: 'center', margin: '12px 0' }}>
+            <button
+              onClick={() => { if (formA && formB) saveHemming(formA, formB); }}
+              style={{
+                padding: '8px 20px', borderRadius: 'var(--r-pill)', border: '1px solid var(--bdr)',
+                background: 'transparent', color: 'var(--tx-2)', fontSize: '12px', cursor: 'pointer',
+              }}
+            >💾 保存此次合盘记录</button>
+          </div>
+        )}
 
         {/* ═══ 针对合盘的追问聊天框（仅分析完成后显示）═══════════ */}
         {analysis && (

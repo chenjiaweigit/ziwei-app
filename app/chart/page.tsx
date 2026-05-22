@@ -44,8 +44,8 @@ export default function ChartPage() {
     const formData = searchParamsToForm(params);
     if (!formData?.year) return;
     const fullForm: BirthFormState = {
-      name: '', year: '', month: '', day: '',
-      clockHour: '8', clockMinute: '0', unknownTime: false,
+      name: '', calendar: 'solar', year: '', month: '', day: '',
+      isLeapMonth: false, clockHour: '8', clockMinute: '0', unknownTime: false,
       province: '', city: '', longitude: 120, gender: 'male',
       ...formData,
     };
@@ -185,7 +185,7 @@ export default function ChartPage() {
                 起紫微命盘
               </h1>
               <p style={{ fontSize: '12px', color: 'var(--tx-3)', letterSpacing: '0.05em' }}>
-                输入出生年月日时 · 以公历为准
+                输入出生年月日时 · 支持公历/农历
               </p>
             </div>
 

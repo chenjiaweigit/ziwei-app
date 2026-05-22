@@ -1,3 +1,4 @@
+import { Lunar } from 'lunar-javascript';
 import type { BirthFormState } from '@/components/BirthForm';
 import type { BirthInfo } from './types';
 
@@ -21,6 +22,16 @@ export function formToBirthInfo(form: BirthFormState): BirthInfo {
   let y = parseInt(form.year) || 0;
   let m = parseInt(form.month) || 0;
   let d = parseInt(form.day) || 0;
+
+  // 农历 → 公历转换（在晚子时之前，确保农历日期正确转公历）
+  if (form.calendar === 'lunar' && y > 0 && m > 0 && d > 0) {
+    const lunarMonth = form.isLeapMonth ? -m : m;
+    const lunar = Lunar.fromYmd(y, lunarMonth, d);
+    const solar = lunar.getSolar();
+    y = solar.getYear();
+    m = solar.getMonth();
+    d = solar.getDay();
+  }
 
   // 晚子时（23:00-23:59）按次日处理：用 Date 对象自动处理月末/年末进位
   if (!form.unknownTime) {
@@ -51,6 +62,10 @@ export function formToBirthInfo(form: BirthFormState): BirthInfo {
 export function formToSearchParams(form: BirthFormState): URLSearchParams {
   const p = new URLSearchParams();
   if (form.name) p.set('n', form.name);
+  if (form.calendar === 'lunar') {
+    p.set('cal', 'l');
+    if (form.isLeapMonth) p.set('lm', '1');
+  }
   p.set('y', form.year);
   p.set('m', form.month);
   p.set('d', form.day);
@@ -75,9 +90,11 @@ export function searchParamsToForm(params: URLSearchParams): Partial<BirthFormSt
   if (!year || !month || !day) return null;
   return {
     name: params.get('n') || '',
+    calendar: params.get('cal') === 'l' ? 'lunar' : 'solar',
     year,
     month,
     day,
+    isLeapMonth: params.get('lm') === '1',
     unknownTime: params.get('u') === '1',
     clockHour: params.get('h') || '8',
     clockMinute: params.get('mi') || '0',

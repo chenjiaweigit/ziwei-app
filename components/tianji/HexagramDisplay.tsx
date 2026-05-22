@@ -11,11 +11,11 @@ function YaoBar({ yin, changing, width }: { yin: boolean; changing: boolean; wid
     return (
       <div style={{ width: w, height: '18px', display: 'flex', alignItems: 'center', position: 'relative' }}>
         <div style={{
-          flex: 1, height: '3px', borderRadius: '1px', background: color,
+          width: 'calc(50% - 5px)', height: '3px', borderRadius: '1px', background: color,
         }} />
         <div style={{ width: '10px', flexShrink: 0 }} />
         <div style={{
-          flex: 1, height: '3px', borderRadius: '1px', background: color,
+          width: 'calc(50% - 5px)', height: '3px', borderRadius: '1px', background: color,
         }} />
         {changing && <span style={{ position: 'absolute', right: '-18px', fontSize: '11px', color: '#ff6b6b' }}>✦</span>}
       </div>

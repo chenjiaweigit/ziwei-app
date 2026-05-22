@@ -111,6 +111,53 @@ export default async function TianjiModulePage({ params }: { params: Promise<{ s
         </div>
       )}
 
+      {mod.slug === 'yijing' && (
+        <div className="max-w-3xl mx-auto px-6 pb-6">
+          <div style={{
+            background: `linear-gradient(135deg, ${ac}10, ${ac}05)`,
+            borderRadius: '12px', border: `1px solid ${ac}25`,
+            padding: '20px 24px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎲</div>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tx-0)', marginBottom: '6px' }}>
+              易经占卜 · 起卦
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--tx-2)', lineHeight: 1.7, marginBottom: '14px' }}>
+              默念所问之事，选择起卦方式<br />
+              金钱卦 · 数字卦 · 时间卦
+            </p>
+            <Link href="/tianji/yijing/divine" style={{
+              display: 'inline-block', padding: '10px 28px',
+              background: ac, color: '#fff', borderRadius: '999px',
+              fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+            }}>
+               开始起卦 →
+            </Link>
+          </div>
+
+          <div style={{
+            background: `linear-gradient(135deg, ${ac}08, transparent)`,
+            borderRadius: '12px', border: `1px solid var(--bdr)`,
+            padding: '20px 24px', textAlign: 'center', marginTop: '12px',
+          }}>
+            <div style={{ fontSize: '22px', marginBottom: '6px' }}>☰☷</div>
+            <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--tx-0)', marginBottom: '4px' }}>
+              六十四卦全景
+            </h2>
+            <p style={{ fontSize: '11px', color: 'var(--tx-3)', marginBottom: '10px' }}>
+              按上下卦、五行筛选 · 查看全部卦象与倪师注解
+            </p>
+            <Link href="/tianji/yijing/hexagrams" style={{
+              display: 'inline-block', padding: '8px 22px',
+              background: `${ac}15`, color: ac, borderRadius: '999px',
+              fontSize: '12px', fontWeight: 500, textDecoration: 'none',
+            }}>
+              浏览六十四卦 →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {mod.chapters.length > 0 && (
         <div className="max-w-3xl mx-auto px-6 pb-8">
           <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--tx-0)', marginBottom: '12px', paddingLeft: '4px' }}>
@@ -174,30 +221,6 @@ export default async function TianjiModulePage({ params }: { params: Promise<{ s
 
       {mod.slug === 'yijing' && (
         <div className="max-w-3xl mx-auto px-6 pb-8">
-          {/* Divination entry */}
-          <div style={{
-            background: `linear-gradient(135deg, ${ac}10, ${ac}05)`,
-            borderRadius: '12px', border: `1px solid ${ac}25`,
-            padding: '20px 24px', marginBottom: '20px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎲</div>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tx-0)', marginBottom: '6px' }}>
-              易经占卜 · 起卦
-            </h2>
-            <p style={{ fontSize: '12px', color: 'var(--tx-2)', lineHeight: 1.7, marginBottom: '14px' }}>
-              默念所问之事，选择起卦方式<br />
-              金钱卦 · 数字卦 · 时间卦
-            </p>
-            <Link href="/tianji/yijing/divine" style={{
-              display: 'inline-block', padding: '10px 28px',
-              background: ac, color: '#fff', borderRadius: '999px',
-              fontSize: '13px', fontWeight: 600, textDecoration: 'none',
-            }}>
-              开始起卦 →
-            </Link>
-          </div>
-
           <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--tx-0)', marginBottom: '12px', paddingLeft: '4px' }}>
             六十四卦 · {HEXAGRAMS.length}
           </h2>
