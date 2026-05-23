@@ -134,6 +134,8 @@ export async function streamInterpret(
             encoder.encode(`data: ${JSON.stringify({ delta: { text: '解读生成失败，模型返回为空' } })}\n\n`),
           );
         }
+        // 免责尾巴
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: { text: '\n\n——\n*以上内容基于传统命理体系生成，仅供娱乐参考，不构成任何人生决策建议。*' } })}\n\n`));
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {
@@ -157,6 +159,8 @@ export async function streamHeming(
 
   const systemPrompt = `你是一位精通倪海夏《天纪》体系紫微斗数的资深命理师，专精于合盘（双盘对比分析）。
 
+免责声明：本合盘分析基于传统命理体系生成，仅供自我认识与娱乐参考，不构成婚恋决策、合伙投资或人生重大决定的依据。请理性看待，切勿过度当真。
+
 合盘分析原则：
 1. 先分别看两个人的命宫主星格局，理解各自的天性
 2. 重点对比夫妻宫/官禄宫/财帛宫的星曜互动
@@ -164,6 +168,7 @@ export async function streamHeming(
 4. 基于倪师体系给出实际的相处建议
 5. 不说危言耸听的话，以建设性建议为主
 6. 每段用【】作为小标题
+7. 禁止使用绝对化断言，禁止预测具体结果
 
 ${question ? `用户问题：${question}` : '请基于双方命盘，进行全面的合盘分析。'}
 
@@ -225,6 +230,8 @@ ${contextB}`;
             encoder.encode(`data: ${JSON.stringify({ delta: { text: '解读生成失败，模型返回为空' } })}\n\n`),
           );
         }
+        // 免责尾巴
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: { text: '\n\n——\n*以上内容基于传统命理体系生成，仅供娱乐参考，不构成任何人生决策建议。*' } })}\n\n`));
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       } catch (error) {

@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       </header>
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '60px 24px 80px', color: 'var(--tx-1)', lineHeight: 1.8 }}>
         <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 8 }}>隐私政策</h1>
-        <p style={{ fontSize: 12, color: 'var(--tx-3)', marginBottom: 32 }}>最后更新：2026年4月</p>
+        <p style={{ fontSize: 12, color: 'var(--tx-3)', marginBottom: 32 }}>最后更新：2026年5月</p>
 
       <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>1. 我们收集的信息</h2>
       <p>为提供紫微命盘排盘与解读服务，我们可能收集以下信息：</p>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <li><strong>命盘必要信息</strong>：姓名（选填）、出生公历年月日、出生时辰、性别、出生地经度</li>
         <li><strong>账号信息（注册后）</strong>：手机号（用于短信验证与会员服务）</li>
         <li><strong>交互信息</strong>：你在站内的点击、浏览、命盘历史记录</li>
-        <li><strong>反馈信息</strong>：你对解读内容的"准 / 不准"打分与文字反馈</li>
+        <li><strong>反馈信息</strong>：你对解读内容的评价与反馈（功能开发中）</li>
         <li><strong>支付信息</strong>：购买会员或单项服务时通过第三方支付（支付宝 / 微信支付）处理，本平台不存储完整卡号或密码</li>
       </ul>
 
@@ -36,12 +36,21 @@ export default function PrivacyPage() {
       <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>3. 信息共享与第三方</h2>
       <p>除以下情形外，我们不会向第三方共享你的个人信息：</p>
       <ul style={{ paddingLeft: 24 }}>
-        <li>支付服务商（支付宝 / 微信支付）：处理订单结算</li>
+        <li>支付服务商（LemonSqueezy / Stripe）：处理订单结算</li>
         <li>短信服务商（如阿里云短信）：发送验证码</li>
         <li>云服务商（如 Vercel / Cloudflare / 阿里云）：技术承载</li>
-        <li>AI 解读服务（如 Anthropic Claude）：处理你的"自由追问"对话（已做匿名化）</li>
+        <li>AI 解读服务（如 OpenRouter / DeepSeek）：处理你的解读请求（已做匿名化）</li>
         <li>司法机关或政府部门基于法律法规的合法要求</li>
       </ul>
+
+      <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>3A. 数据跨境传输</h2>
+      <p>本平台的服务器和第三方服务提供商可能位于中国境外（包括但不限于新加坡、美国等）。你的个人信息在必要时可能会传输至境外服务器进行处理。我们会采取以下措施保障你的数据安全：</p>
+      <ul style={{ paddingLeft: 24 }}>
+        <li>选择具有国际安全认证的云服务商（SOC2 / ISO 27001）</li>
+        <li>对传输的个人信息进行匿名化或脱敏处理</li>
+        <li>与第三方服务商签订数据保护协议</li>
+      </ul>
+      <p>继续使用本平台即表示你已知悉并同意上述数据跨境传输。如你对此有疑问，可随时联系我们。</p>
 
       <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>4. 信息安全</h2>
       <p>我们采取业界常见的技术与管理手段保护你的信息（HTTPS 传输加密、数据库加密存储、访问权限控制等）。但请注意，互联网传输无法保证 100% 安全。</p>
